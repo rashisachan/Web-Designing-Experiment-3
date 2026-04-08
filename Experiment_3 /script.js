@@ -7,14 +7,16 @@ const taskList = document.getElementById('taskList');
 const stats = document.getElementById('stats');
 const clearBtn = document.getElementById('clearBtn');
 
-// Load tasks
 const saved = localStorage.getItem('tasks');
-if (saved) tasks = JSON.parse(saved);
-else tasks = [
-    { id: 1, text: 'Complete JavaScript assignment', done: false },
-    { id: 2, text: 'Review DOM manipulation', done: true },
-    { id: 3, text: 'Build to-do list app', done: false }
-];
+if (saved) {
+    tasks = JSON.parse(saved);
+} else {
+    tasks = [
+        { id: 1, text: 'Learn JavaScript', done: false },
+        { id: 2, text: 'Build to-do app', done: true },
+        { id: 3, text: 'Submit lab', done: false }
+    ];
+}
 
 function save() {
     localStorage.setItem('tasks', JSON.stringify(tasks));
@@ -24,89 +26,103 @@ function display() {
     let filtered = tasks;
     if (filter === 'pending') filtered = tasks.filter(t => !t.done);
     if (filter === 'completed') filtered = tasks.filter(t => t.done);
-    
+
     if (filtered.length === 0) {
-        taskList.innerHTML = '<li class="empty">No tasks to show </li>';
+        taskList.innerHTML = '<li class="empty">No tasks</li>';
     } else {
-        taskList.innerHTML = filtered.map(task => `
-            <li class="task">
+        taskList.innerHTML = '';
+        for (let i = 0; i < filtered.length; i++) {
+            let task = filtered[i];
+            let li = document.createElement('li');
+            li.className = 'task';
+            li.innerHTML = `
                 <div class="task-left">
                     <input type="checkbox" class="task-check" ${task.done ? 'checked' : ''} data-id="${task.id}">
-                    <span class="task-text ${task.done ? 'completed' : ''}">${escapeHtml(task.text)}</span>
+                    <span class="task-text ${task.done ? 'completed' : ''}">${task.text}</span>
                 </div>
                 <button class="delete-btn" data-id="${task.id}">🗑️</button>
-            </li>
-        `).join('');
+            `;
+            taskList.appendChild(li);
+        }
     }
-    
-    const total = tasks.length;
-    const done = tasks.filter(t => t.done).length;
-    stats.textContent = `📌 ${total - done} pending · ✅ ${done} completed · Total: ${total}`;
-    
-    // Event listeners
-    document.querySelectorAll('.task-check').forEach(cb => {
-        cb.addEventListener('change', (e) => {
-            const id = parseInt(e.target.dataset.id);
-            const task = tasks.find(t => t.id === id);
-            if (task) task.done = e.target.checked;
+   
+    let total = tasks.length;
+    let done = 0;
+    for (let i = 0; i < tasks.length; i++) {
+        if (tasks[i].done) done++;
+    }
+    stats.textContent = `${total - done} pending · ${done} done · Total ${total}`;
+
+    let checks = document.querySelectorAll('.task-check');
+    for (let i = 0; i < checks.length; i++) {
+        checks[i].onclick = function(e) {
+            let id = parseInt(e.target.dataset.id);
+            for (let j = 0; j < tasks.length; j++) {
+                if (tasks[j].id === id) {
+                    tasks[j].done = e.target.checked;
+                    break;
+                }
+            }
             save();
             display();
-        });
-    });
-    
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = parseInt(e.target.dataset.id);
-            tasks = tasks.filter(t => t.id !== id);
+        };
+    }
+
+    let deletes = document.querySelectorAll('.delete-btn');
+    for (let i = 0; i < deletes.length; i++) {
+        deletes[i].onclick = function(e) {
+            let id = parseInt(e.target.dataset.id);
+            let newTasks = [];
+            for (let j = 0; j < tasks.length; j++) {
+                if (tasks[j].id !== id) newTasks.push(tasks[j]);
+            }
+            tasks = newTasks;
             save();
             display();
-        });
-    });
+        };
+    }
 }
 
-// Helper function to prevent XSS
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Add task
-addBtn.onclick = () => {
-    const text = taskInput.value.trim();
-    if (!text) {
-        taskInput.placeholder = 'Please enter a task!';
-        taskInput.style.borderColor = '#c96b7e';
-        setTimeout(() => {
-            taskInput.placeholder = 'What needs to be done?';
-            taskInput.style.borderColor = '#e2d4e8';
-        }, 1500);
+addBtn.onclick = function() {
+    let text = taskInput.value.trim();
+    if (text === '') {
+        alert('Enter a task');
         return;
     }
-    tasks.push({ id: Date.now(), text, done: false });
+    tasks.push({
+        id: Date.now(),
+        text: text,
+        done: false
+    });
     taskInput.value = '';
     save();
     display();
 };
 
-taskInput.onkeypress = (e) => {
+taskInput.onkeypress = function(e) {
     if (e.key === 'Enter') addBtn.click();
 };
 
-clearBtn.onclick = () => {
-    tasks = tasks.filter(t => !t.done);
+clearBtn.onclick = function() {
+    let remaining = [];
+    for (let i = 0; i < tasks.length; i++) {
+        if (!tasks[i].done) remaining.push(tasks[i]);
+    }
+    tasks = remaining;
     save();
     display();
 };
 
-// Filter buttons
-document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.onclick = () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        filter = btn.dataset.filter;
+let filters = document.querySelectorAll('.filter');
+for (let i = 0; i < filters.length; i++) {
+    filters[i].onclick = function() {
+        for (let j = 0; j < filters.length; j++) {
+            filters[j].classList.remove('active');
+        }
+        this.classList.add('active');
+        filter = this.dataset.filter;
         display();
     };
-});
+}
 
 display();

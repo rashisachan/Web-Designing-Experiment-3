@@ -1,6 +1,4 @@
-let tasks = [];
-let filter = 'all';
-
+let tasks = [], filter = 'all';
 const taskInput = document.getElementById('taskInput');
 const addBtn = document.getElementById('addBtn');
 const taskList = document.getElementById('taskList');
@@ -26,14 +24,13 @@ function display() {
     let filtered = tasks;
     if (filter === 'pending') filtered = tasks.filter(t => !t.done);
     if (filter === 'completed') filtered = tasks.filter(t => t.done);
-
+    
     if (filtered.length === 0) {
         taskList.innerHTML = '<li class="empty">No tasks</li>';
     } else {
         taskList.innerHTML = '';
-        for (let i = 0; i < filtered.length; i++) {
-            let task = filtered[i];
-            let li = document.createElement('li');
+        filtered.forEach(task => {
+            const li = document.createElement('li');
             li.className = 'task';
             li.innerHTML = `
                 <div class="task-left">
@@ -43,86 +40,61 @@ function display() {
                 <button class="delete-btn" data-id="${task.id}">🗑️</button>
             `;
             taskList.appendChild(li);
-        }
+        });
     }
-   
-    let total = tasks.length;
-    let done = 0;
-    for (let i = 0; i < tasks.length; i++) {
-        if (tasks[i].done) done++;
-    }
-    stats.textContent = `${total - done} pending · ${done} done · Total ${total}`;
+    
+    const total = tasks.length;
+    const done = tasks.filter(t => t.done).length;
+    stats.textContent = `${total - done} pending • ${done} done • Total ${total}`;
 
-    let checks = document.querySelectorAll('.task-check');
-    for (let i = 0; i < checks.length; i++) {
-        checks[i].onclick = function(e) {
-            let id = parseInt(e.target.dataset.id);
-            for (let j = 0; j < tasks.length; j++) {
-                if (tasks[j].id === id) {
-                    tasks[j].done = e.target.checked;
-                    break;
-                }
-            }
+    document.querySelectorAll('.task-check').forEach(checkbox => {
+        checkbox.onclick = (e) => {
+            const id = parseInt(e.target.dataset.id);
+            const task = tasks.find(t => t.id === id);
+            if (task) task.done = e.target.checked;
             save();
             display();
         };
-    }
-
-    let deletes = document.querySelectorAll('.delete-btn');
-    for (let i = 0; i < deletes.length; i++) {
-        deletes[i].onclick = function(e) {
-            let id = parseInt(e.target.dataset.id);
-            let newTasks = [];
-            for (let j = 0; j < tasks.length; j++) {
-                if (tasks[j].id !== id) newTasks.push(tasks[j]);
-            }
-            tasks = newTasks;
+    });
+    
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            const id = parseInt(e.target.dataset.id);
+            tasks = tasks.filter(t => t.id !== id);
             save();
             display();
         };
-    }
+    });
 }
 
-addBtn.onclick = function() {
-    let text = taskInput.value.trim();
-    if (text === '') {
+addBtn.onclick = () => {
+    const text = taskInput.value.trim();
+    if (!text) {
         alert('Enter a task');
         return;
     }
-    tasks.push({
-        id: Date.now(),
-        text: text,
-        done: false
-    });
+    tasks.push({ id: Date.now(), text, done: false });
     taskInput.value = '';
     save();
     display();
 };
 
-taskInput.onkeypress = function(e) {
+taskInput.onkeypress = (e) => {
     if (e.key === 'Enter') addBtn.click();
 };
 
-clearBtn.onclick = function() {
-    let remaining = [];
-    for (let i = 0; i < tasks.length; i++) {
-        if (!tasks[i].done) remaining.push(tasks[i]);
-    }
-    tasks = remaining;
+clearBtn.onclick = () => {
+    tasks = tasks.filter(t => !t.done);
     save();
     display();
 };
 
-let filters = document.querySelectorAll('.filter');
-for (let i = 0; i < filters.length; i++) {
-    filters[i].onclick = function() {
-        for (let j = 0; j < filters.length; j++) {
-            filters[j].classList.remove('active');
-        }
+document.querySelectorAll('.filter').forEach(btn => {
+    btn.onclick = function() {
+        document.querySelectorAll('.filter').forEach(f => f.classList.remove('active'));
         this.classList.add('active');
         filter = this.dataset.filter;
         display();
     };
-}
-
+});
 display();
